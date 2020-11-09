@@ -10,7 +10,7 @@ import (
 
 func SetupRouter() *mux.Router {
 	r := mux.NewRouter()
-	r.HandleFunc("/user/add", apiController.Add).Methods(http.MethodGet)
-	r.HandleFunc("/user", apiController.Get).Methods(http.MethodGet)
+	r.HandleFunc("/user/{userName}", apiController.Put).Methods(http.MethodPut)
+	r.HandleFunc("/user/{userName}", apiController.Get).Methods(http.MethodGet)
 	return r
 }
