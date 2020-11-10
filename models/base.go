@@ -4,13 +4,11 @@ import (
 	"fmt"
 	"time"
 
-	_ "github.com/go-sql-driver/mysql"
-	"github.com/jinzhu/gorm"
-	"gopkg.in/go-playground/validator.v9"
+	"gorm.io/driver/mysql"
+	"gorm.io/gorm"
 )
 
 var db *gorm.DB
-var validate *validator.Validate
 
 type Model struct {
 	ID        uint      `gorm:"primary_key" json:"id,omitempty"`
@@ -24,20 +22,31 @@ func init() {
 	dbHost := "fullstack-mysql" // os.Getenv("db_host")
 	dbPort := "3306"            // os.Getenv("db_port")
 
-	conn, err := gorm.Open("mysql", username+":"+password+"@tcp("+dbHost+":"+dbPort+")/"+dbName+"?charset=utf8&parseTime=True&loc=Asia%2FKolkata")
-
+	dsn := username + ":" + password + "@tcp(" + dbHost + ":" + dbPort + ")/" + dbName + "?charset=utf8mb4&parseTime=True&loc=Local"
+	conn, err := gorm.Open(mysql.Open(dsn), &gorm.Config{})
 	if err != nil {
 		fmt.Print(err)
 	}
 	db = conn
 
-	//Printing query
-	db.LogMode(true)
-
 	//Automatically create migration as per model
-	db.Debug().AutoMigrate(
+	err = db.AutoMigrate(
 		&User{},
+		&Plan{},
 	)
+	var plan Plan
+	result := db.First(&plan)
+	if result.RowsAffected == 0 {
+		var plans = []Plan{
+			{ID: "FREE", Validity: -1, Cost: 0.0},
+			{ID: "TRIAL", Validity: 7, Cost: 0.0},
+			{ID: "LITE_1M", Validity: 30, Cost: 100.0},
+			{ID: "PRO_1M", Validity: 30, Cost: 200.0},
+			{ID: "LITE_6M", Validity: 180, Cost: 500.0},
+			{ID: "PRO_6M", Validity: 180, Cost: 900.0},
+		}
+		db.Create(&plans)
+	}
 }
 
 func GetDB() *gorm.DB {

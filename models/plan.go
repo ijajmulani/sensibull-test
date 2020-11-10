@@ -1,10 +1,9 @@
 package models
 
 type Plan struct {
-	Model
-	Name     string `gorm:"type:varchar(50)" json:"name" validate:"required, UNIQUE"`
-	Validity int16  `gorm: json:"validity" validate:"required"`
-	Cost     uint16 `gorm: json:"cost" validate:"required"`
+	ID       string  `gorm:"primary_key" "type:varchar(50)" json:"id" "UNIQUE"`
+	Validity int16   `gorm: json:"validity"`
+	Cost     float32 `gorm: json:"cost"`
 }
 
 func (u *Plan) TableName() string {
