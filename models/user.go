@@ -2,7 +2,7 @@ package models
 
 type User struct {
 	Model
-	Name string `gorm:"type:varchar(50)" json:"name" validate:"required"`
+	Name string `gorm:"unique" "type:varchar(255)" json:"name"` // make unique key
 }
 
 func (u *User) TableName() string {

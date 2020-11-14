@@ -16,6 +16,7 @@ type Model struct {
 }
 
 func init() {
+
 	username := "docker"        // os.Getenv("db_user")
 	password := "docker"        //os.Getenv("db_pass")
 	dbName := "sensibull"       //os.Getenv("db_name")
@@ -25,7 +26,7 @@ func init() {
 	dsn := username + ":" + password + "@tcp(" + dbHost + ":" + dbPort + ")/" + dbName + "?charset=utf8mb4&parseTime=True&loc=Local"
 	conn, err := gorm.Open(mysql.Open(dsn), &gorm.Config{})
 	if err != nil {
-		fmt.Print(err)
+		fmt.Print("-=---------- ", err)
 	}
 	db = conn
 
@@ -39,12 +40,12 @@ func init() {
 	result := db.First(&plan)
 	if result.RowsAffected == 0 {
 		var plans = []Plan{
-			{ID: "FREE", Validity: -1, Cost: 0.0},
-			{ID: "TRIAL", Validity: 7, Cost: 0.0},
-			{ID: "LITE_1M", Validity: 30, Cost: 100.0},
-			{ID: "PRO_1M", Validity: 30, Cost: 200.0},
-			{ID: "LITE_6M", Validity: 180, Cost: 500.0},
-			{ID: "PRO_6M", Validity: 180, Cost: 900.0},
+			{Name: "FREE", Validity: -1, Cost: 0.0},
+			{Name: "TRIAL", Validity: 7, Cost: 0.0},
+			{Name: "LITE_1M", Validity: 30, Cost: 100.0},
+			{Name: "PRO_1M", Validity: 30, Cost: 200.0},
+			{Name: "LITE_6M", Validity: 180, Cost: 500.0},
+			{Name: "PRO_6M", Validity: 180, Cost: 900.0},
 		}
 		db.Create(&plans)
 	}

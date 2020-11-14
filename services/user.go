@@ -28,6 +28,9 @@ func (us *UserService) Get(userName string) (UserResponse, error) {
 }
 
 func (us *UserService) Add(name string) error {
+
+	// remove space from user name
+
 	db := models.GetDB()
 
 	var user models.User

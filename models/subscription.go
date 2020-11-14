@@ -4,11 +4,13 @@ import "time"
 
 type Subscription struct {
 	Model
-	StartDate time.Time `json:"start_date"`
-	PlanID    string
 	Plan      Plan
-	UserID    uint
 	User      User
+	StartDate time.Time `json:"start_date"`
+	ValidTill time.Time `json:"valid_till`
+	PlanID    uint
+	UserID    uint
+	UpdatedAt time.Time `json:"updated_at"`
 }
 
 func (s *Subscription) TableName() string {
