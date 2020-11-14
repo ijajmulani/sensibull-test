@@ -136,18 +136,15 @@ func (ss *SubscriptionService) Post(args subscriptions.PostArgs) (SubscriptionPo
 	}
 
 	// future start date should not be on overlap
-
 	// check if any plan exists on given date
-
 	// handle free tier case bcz validity is -1
-	//select user.id, user.name, subscription.plan_id, subscription.start_date, validity  from user join subscription on user.id = subscription.user_id  join plan on plan.id = subscription.plan_id where
-	// '2020-12-13' between start_date and start_date + interval validity day
-
-	// cant upgrade/ degrade plan on current date
+	// can upgrade/degrade plan on current date if plan id is different
 
 	var subscription models.Subscription
 	db.Debug().Last(&subscription).Where("user_id = ?", user.ID).Order("start_date")
 	var amountToProcess = -newPlan.Cost
+
+	// used transaction if payment fails then to revert all transaction
 	err = db.Transaction(func(tx *gorm.DB) error {
 		if subscription.PlanID != 0 {
 			var oldPlanUsesDays float32
