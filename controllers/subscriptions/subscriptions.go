@@ -2,6 +2,7 @@ package subscriptions
 
 import (
 	"encoding/json"
+	"log"
 	"net/http"
 	"sensibull-test/services"
 	"sensibull-test/structures/subscriptions"
@@ -20,13 +21,18 @@ func Post(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	w.Header().Set("Content-Type", "application/json")
+
 	var subscriptionService services.SubscriptionService
-	if err := subscriptionService.Post(args); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return
+	resp, err := subscriptionService.Post(args)
+	log.Println("resp", resp, err)
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+	} else {
+		w.WriteHeader(http.StatusOK)
 	}
 
-	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(resp)
 }
 
 func GetByUserName(w http.ResponseWriter, r *http.Request) {

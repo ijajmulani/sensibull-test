@@ -2,10 +2,13 @@ package services
 
 import (
 	"errors"
+	"log"
 	"sensibull-test/helper"
 	"sensibull-test/models"
 	"sensibull-test/structures/subscriptions"
 	"time"
+
+	"gorm.io/gorm"
 )
 
 type SubscriptionService struct{}
@@ -22,8 +25,13 @@ type SubscriptionListResponse struct {
 }
 
 type SubscriptionGetResponse struct {
-	DaysLeft int    `json:"days_left"`
 	PlanName string `json:"plan_id"`
+	DaysLeft int    `json:"days_left"`
+}
+
+type SubscriptionPostResponse struct {
+	Status string  `json:"status"`
+	Amount float32 `json:"amount"`
 }
 
 func (ss *SubscriptionService) GetByUserName(userName string) ([]SubscriptionListResponse, error) {
@@ -97,28 +105,30 @@ func (ss *SubscriptionService) GetByUserNameAndDate(userName string, date string
 	return response, nil
 }
 
-func (ss *SubscriptionService) Post(args subscriptions.PostArgs) error {
+func (ss *SubscriptionService) Post(args subscriptions.PostArgs) (SubscriptionPostResponse, error) {
 	const layoutISO = "2006-01-02"
 	var newStartDate time.Time
 	var err error
+	var res SubscriptionPostResponse
 	db := models.GetDB()
+	res.Status = "FAILURE"
 
 	var user models.User
 	userDBRes := db.Where("name = ?", args.UserName).First(&user)
 	if userDBRes.RowsAffected == 0 {
-		return errors.New("user does not exists")
+		return res, errors.New("user does not exists")
 	}
 
 	var newPlan models.Plan
 	planDBRes := db.Where("name = ?", args.PlanName).First(&newPlan)
 	if planDBRes.RowsAffected == 0 {
-		return errors.New("plan does not exists")
+		return res, errors.New("plan does not exists")
 	}
 
 	// start should be valid and start date should be greater than current date
 	// remaining match date only not time
 	if newStartDate, err = time.Parse(layoutISO, args.StartDate); err != nil || newStartDate.Before(time.Now()) {
-		return errors.New("start_date is not valid")
+		return res, errors.New("start_date is not valid")
 	}
 
 	// future start date should not be on overlap
@@ -134,54 +144,62 @@ func (ss *SubscriptionService) Post(args subscriptions.PostArgs) error {
 	var subscription models.Subscription
 	db.Debug().Last(&subscription).Where("user_id = ?", user.ID).Order("start_date")
 	var amountToProcess = -newPlan.Cost
+	err = db.Transaction(func(tx *gorm.DB) error {
+		if subscription.PlanID != 0 {
+			log.Println(subscription.PlanID)
+			var oldPlanUsesDays float32
+			if newStartDate.After(subscription.StartDate) || newStartDate.Equal(subscription.StartDate) {
+				if newStartDate.Before(subscription.ValidTill) {
+					// Update previous plan's valid_till date
+					if newPlan.ID != subscription.PlanID || (newStartDate.Equal(subscription.StartDate) && newPlan.ID != subscription.PlanID) {
+						log.Println("Updating")
+						tx.Model(&models.Subscription{}).Where("id = ?", subscription.ID).Update("valid_till", newStartDate)
+						oldPlanUsesDays = float32(newStartDate.Sub(subscription.StartDate).Hours() / 24)
+					} else {
+						return errors.New("plan is already activated at give date. please choose another plan or provide future date")
+					}
 
-	if subscription.PlanID != 0 {
-		var oldPlanUsesDays float32
-		if newStartDate.After(subscription.StartDate) || newStartDate.Equal(subscription.StartDate) {
-			if newStartDate.Before(subscription.ValidTill) {
-				// Update previous plan's valid_till date
-				if newPlan.ID != subscription.PlanID || (newStartDate.Equal(subscription.StartDate) && newPlan.ID != subscription.PlanID) {
-					db.Model(&models.Subscription{}).Where("id = ?", subscription.ID).Update("valid_till", newStartDate)
-					oldPlanUsesDays = float32(newStartDate.Sub(subscription.StartDate).Hours() / 24)
-				} else {
-					return errors.New("plan is already activated at give date. please choose another plan or provide future date")
+					if newPlan.ID != subscription.PlanID {
+						var oldPlanCharges float32
+						var oldPlan models.Plan
+						oldPlanDetails := tx.Where("id = ?", subscription.PlanID).First(&oldPlan)
+						if oldPlanDetails.RowsAffected == 0 {
+							return errors.New("oops, error occurred")
+						}
+
+						if oldPlanUsesDays == 0 {
+							oldPlanCharges = 0
+						} else {
+							oldPlanCharges = (oldPlan.Cost / float32(oldPlan.Validity)) * oldPlanUsesDays
+						}
+						amountToProcess = (oldPlan.Cost - oldPlanCharges)
+					}
+
+					amountToProcess = -(newPlan.Cost - amountToProcess)
+					log.Println("amountToProcess", amountToProcess)
 				}
-
-			}
-		} else {
-			return errors.New("start_date is not valid")
-		}
-		if newPlan.ID != subscription.PlanID {
-			var oldPlanCharges float32
-			var oldPlan models.Plan
-			oldPlanDetails := db.Where("id = ?", subscription.PlanID).First(&oldPlan)
-			if oldPlanDetails.RowsAffected == 0 {
-				return errors.New("oops, error occurred")
-			}
-
-			if oldPlanUsesDays == 0 {
-				oldPlanCharges = 0
 			} else {
-				oldPlanCharges = (oldPlan.Cost / float32(oldPlan.Validity)) * oldPlanUsesDays
+				return errors.New("start_date is not valid")
 			}
-			amountToProcess = (oldPlan.Cost - oldPlanCharges)
 		}
 
-		amountToProcess = -(newPlan.Cost - amountToProcess)
-	}
+		paymentResp := new(PaymentResp)
 
-	paymentResp := new(PaymentResp)
-	if err = helper.ProcessPayment(args.UserName, amountToProcess, paymentResp); err == nil {
+		if err = helper.ProcessPayment(args.UserName, amountToProcess, paymentResp); err == nil {
+			res.Amount = amountToProcess
+			res.Status = "SUCCESS"
 
-		newSubscription := models.Subscription{
-			PlanID:    newPlan.ID,
-			UserID:    user.ID,
-			StartDate: newStartDate,
-			ValidTill: newStartDate.AddDate(0, 0, int(newPlan.Validity)),
+			newSubscription := models.Subscription{
+				PlanID:    newPlan.ID,
+				UserID:    user.ID,
+				StartDate: newStartDate,
+				ValidTill: newStartDate.AddDate(0, 0, int(newPlan.Validity)),
+			}
+
+			tx.Create(&newSubscription)
 		}
+		return err
+	})
 
-		db.Create(&newSubscription)
-	}
-
-	return err
+	return res, err
 }
