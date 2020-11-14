@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"errors"
 	"io"
-	"log"
 	"math"
 	"net/http"
 )
@@ -27,8 +26,6 @@ func ProcessPayment(userName string, amount float32, response interface{}) error
 		PaymentType: paymentType,
 		Amount:      math.Abs(float64(amount)),
 	}
-
-	log.Println("payload", payload)
 
 	req, err := newRequest(http.MethodPost, url, payload)
 

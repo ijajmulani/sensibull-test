@@ -2,7 +2,6 @@ package services
 
 import (
 	"errors"
-	"log"
 	"sensibull-test/helper"
 	"sensibull-test/models"
 	"sensibull-test/structures/subscriptions"
@@ -146,13 +145,11 @@ func (ss *SubscriptionService) Post(args subscriptions.PostArgs) (SubscriptionPo
 	var amountToProcess = -newPlan.Cost
 	err = db.Transaction(func(tx *gorm.DB) error {
 		if subscription.PlanID != 0 {
-			log.Println(subscription.PlanID)
 			var oldPlanUsesDays float32
 			if newStartDate.After(subscription.StartDate) || newStartDate.Equal(subscription.StartDate) {
 				if newStartDate.Before(subscription.ValidTill) {
 					// Update previous plan's valid_till date
 					if newPlan.ID != subscription.PlanID || (newStartDate.Equal(subscription.StartDate) && newPlan.ID != subscription.PlanID) {
-						log.Println("Updating")
 						tx.Model(&models.Subscription{}).Where("id = ?", subscription.ID).Update("valid_till", newStartDate)
 						oldPlanUsesDays = float32(newStartDate.Sub(subscription.StartDate).Hours() / 24)
 					} else {
@@ -176,7 +173,6 @@ func (ss *SubscriptionService) Post(args subscriptions.PostArgs) (SubscriptionPo
 					}
 
 					amountToProcess = -(newPlan.Cost - amountToProcess)
-					log.Println("amountToProcess", amountToProcess)
 				}
 			} else {
 				return errors.New("start_date is not valid")

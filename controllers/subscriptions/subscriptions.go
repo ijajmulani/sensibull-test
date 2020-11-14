@@ -2,7 +2,6 @@ package subscriptions
 
 import (
 	"encoding/json"
-	"log"
 	"net/http"
 	"sensibull-test/services"
 	"sensibull-test/structures/subscriptions"
@@ -25,7 +24,6 @@ func Post(w http.ResponseWriter, r *http.Request) {
 
 	var subscriptionService services.SubscriptionService
 	resp, err := subscriptionService.Post(args)
-	log.Println("resp", resp, err)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 	} else {
