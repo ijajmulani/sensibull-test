@@ -15,8 +15,8 @@ func SetupRouter() *mux.Router {
 	r.HandleFunc("/user/{userName}", usersController.Get).Methods(http.MethodGet)
 
 	// r.HandleFunc("/subscription/", usersController.Put).Methods(http.MethodPut)
-	// r.HandleFunc("/subscription/{userName}", subscriptionsController.List).Methods(http.MethodGet)
-	// r.HandleFunc("/subscription/{userName}/{date}", subscriptionsController.GetWithDate).Methods(http.MethodGet)
+	r.HandleFunc("/subscription/{userName}", subscriptionsController.GetByUserName).Methods(http.MethodGet)
+	r.HandleFunc("/subscription/{userName}/{date}", subscriptionsController.GetByUserNameAndDate).Methods(http.MethodGet)
 	r.HandleFunc("/subscription", subscriptionsController.Post).Methods(http.MethodPost)
 	return r
 }

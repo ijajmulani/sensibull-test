@@ -19,7 +19,7 @@ func (us *UserService) Get(userName string) (UserResponse, error) {
 	if result.RowsAffected == 0 {
 		return UserResponse{}, errors.New("user does not exists")
 	}
-	layoutISO := "2006-01-02 3:04:05"
+	layoutISO := "2006-01-02"
 	res := UserResponse{
 		Name:      user.Name,
 		CreatedAt: user.CreatedAt.Format(layoutISO),

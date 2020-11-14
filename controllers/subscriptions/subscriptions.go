@@ -5,6 +5,9 @@ import (
 	"net/http"
 	"sensibull-test/services"
 	"sensibull-test/structures/subscriptions"
+	"strings"
+
+	"github.com/gorilla/mux"
 )
 
 func Post(w http.ResponseWriter, r *http.Request) {
@@ -25,4 +28,43 @@ func Post(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.WriteHeader(http.StatusOK)
+}
+
+func GetByUserName(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	userName := vars["userName"]
+	userName = strings.Trim(userName, " ")
+	w.Header().Set("Content-Type", "application/json")
+	if userName == "" {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	var subscriptionService services.SubscriptionService
+	if resp, err := subscriptionService.GetByUserName(userName); err == nil {
+		w.WriteHeader(http.StatusOK)
+		json.NewEncoder(w).Encode(resp)
+		return
+	}
+	w.WriteHeader(http.StatusNotFound)
+}
+
+func GetByUserNameAndDate(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	userName := vars["userName"]
+	date := vars["date"]
+	userName = strings.Trim(userName, " ")
+	w.Header().Set("Content-Type", "application/json")
+	if userName == "" {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	var subscriptionService services.SubscriptionService
+	if resp, err := subscriptionService.GetByUserNameAndDate(userName, date); err == nil {
+		w.WriteHeader(http.StatusOK)
+		json.NewEncoder(w).Encode(resp)
+		return
+	}
+	w.WriteHeader(http.StatusNotFound)
 }
