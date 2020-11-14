@@ -1,13 +1,9 @@
 package services
 
 import (
-	"bytes"
-	"encoding/json"
 	"errors"
-	"io"
 	"log"
-	"math"
-	"net/http"
+	"sensibull-test/helper"
 	"sensibull-test/models"
 	"sensibull-test/structures/subscriptions"
 	"time"
@@ -90,15 +86,16 @@ func (ss *SubscriptionService) GetByUserNameAndDate(userName string, date string
 		Select("subscription.valid_till, plan.name").
 		Joins("join user on subscription.user_id = user.id").
 		Joins("join plan on subscription.plan_id = plan.id").
-		Where("user.name = ? and ? between subscription.start_date and subscription.valid_till", userName, date).
+		Where("user.name = ? and subscription.start_date <= ? and subscription.valid_till > ?", userName, date, date).
 		Scan(&result)
 
-	response := &SubscriptionGetResponse{
-		PlanName: result.Name,
-		DaysLeft: int(result.ValidTill.Sub(inputDate).Hours() / 24),
+	var response = new(SubscriptionGetResponse)
+	if result.Name != "" {
+		response.PlanName = result.Name
+		response.DaysLeft = int(result.ValidTill.Sub(inputDate).Hours() / 24)
 	}
-
 	return response, nil
+
 }
 
 func (ss *SubscriptionService) Post(args subscriptions.PostArgs) error {
@@ -175,9 +172,8 @@ func (ss *SubscriptionService) Post(args subscriptions.PostArgs) error {
 		amountToProcess = -(newPlan.Cost - amountToProcess)
 	}
 
-	log.Println("amountToProcess", amountToProcess)
 	paymentResp := new(PaymentResp)
-	if err = processPayment(args.UserName, amountToProcess, paymentResp); err == nil {
+	if err = helper.ProcessPayment(args.UserName, amountToProcess, paymentResp); err == nil {
 
 		newSubscription := models.Subscription{
 			PlanID:    newPlan.ID,
@@ -191,68 +187,4 @@ func (ss *SubscriptionService) Post(args subscriptions.PostArgs) error {
 	log.Println("paymentResp", paymentResp)
 
 	return err
-}
-
-func processPayment(userName string, amount float32, response interface{}) error {
-	url := "https://dummy-payment-server.herokuapp.com/payment"
-	paymentType := "DEBIT"
-	if amount > 0 {
-		paymentType = "CREDIT"
-	}
-	type Payload struct {
-		UserName    string  `json:"user_name"`
-		PaymentType string  `json:"payment_type"`
-		Amount      float64 `json:"amount"`
-	}
-
-	payload := Payload{
-		UserName:    userName,
-		PaymentType: paymentType,
-		Amount:      math.Abs(float64(amount)),
-	}
-
-	log.Println("payload", payload)
-
-	req, err := newRequest(http.MethodPost, url, payload)
-
-	// Set default headers
-	req.Header.Set("Accept", "application/json")
-	req.Header.Set("Accept-Language", "en_US")
-	req.Header.Set("Content-type", "application/json")
-
-	client := &http.Client{}
-	resp, err := client.Do(req)
-
-	if err != nil {
-		return err
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode < 200 || resp.StatusCode > 299 {
-		return errors.New("Error in request")
-	}
-
-	if response == nil {
-		return nil
-	}
-
-	if w, ok := response.(io.Writer); ok {
-		io.Copy(w, resp.Body)
-		return nil
-	}
-	return json.NewDecoder(resp.Body).Decode(response)
-}
-
-// NewRequest constructs a request
-// Convert payload to a JSON
-func newRequest(method, url string, payload interface{}) (*http.Request, error) {
-	var buf io.Reader
-	if payload != nil {
-		b, err := json.Marshal(&payload)
-		if err != nil {
-			return nil, err
-		}
-		buf = bytes.NewBuffer(b)
-	}
-	return http.NewRequest(method, url, buf)
 }
