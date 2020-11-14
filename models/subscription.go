@@ -5,7 +5,7 @@ import "time"
 type Subscription struct {
 	Model
 	StartDate time.Time `json:"start_date"`
-	PlanID    uint
+	PlanID    string
 	Plan      Plan
 	UserID    uint
 	User      User

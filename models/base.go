@@ -33,6 +33,7 @@ func init() {
 	err = db.AutoMigrate(
 		&User{},
 		&Plan{},
+		&Subscription{},
 	)
 	var plan Plan
 	result := db.First(&plan)
