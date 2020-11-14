@@ -2,8 +2,10 @@ package services
 
 import (
 	"errors"
+	"sensibull-test/constants"
 	"sensibull-test/helper"
 	"sensibull-test/models"
+
 	"sensibull-test/structures/subscriptions"
 	"time"
 
@@ -33,6 +35,7 @@ type SubscriptionPostResponse struct {
 	Amount float32 `json:"amount"`
 }
 
+// GetByUserName return []SubscriptionListResponse of given user name
 func (ss *SubscriptionService) GetByUserName(userName string) ([]SubscriptionListResponse, error) {
 	db := models.GetDB()
 	var subscription models.Subscription
@@ -73,6 +76,7 @@ func (ss *SubscriptionService) GetByUserName(userName string) ([]SubscriptionLis
 	return response, err
 }
 
+// GetByUserNameAndDate return *SubscriptionGetResponse of given user name at perticular date
 func (ss *SubscriptionService) GetByUserNameAndDate(userName string, date string) (*SubscriptionGetResponse, error) {
 	const layoutISO = "2006-01-02"
 
@@ -104,30 +108,31 @@ func (ss *SubscriptionService) GetByUserNameAndDate(userName string, date string
 	return response, nil
 }
 
+// Post will add subscription in db
 func (ss *SubscriptionService) Post(args subscriptions.PostArgs) (SubscriptionPostResponse, error) {
 	const layoutISO = "2006-01-02"
 	var newStartDate time.Time
 	var err error
 	var res SubscriptionPostResponse
 	db := models.GetDB()
-	res.Status = "FAILURE"
+	res.Status = constants.FAILURE
 
 	var user models.User
 	userDBRes := db.Where("name = ?", args.UserName).First(&user)
 	if userDBRes.RowsAffected == 0 {
-		return res, errors.New("user does not exists")
+		return res, errors.New(constants.UserNotFound)
 	}
 
 	var newPlan models.Plan
 	planDBRes := db.Where("name = ?", args.PlanName).First(&newPlan)
 	if planDBRes.RowsAffected == 0 {
-		return res, errors.New("plan does not exists")
+		return res, errors.New(constants.PlanNotExist)
 	}
 
 	// start should be valid and start date should be greater than current date
 	// remaining match date only not time
 	if newStartDate, err = time.Parse(layoutISO, args.StartDate); err != nil || newStartDate.Before(time.Now()) {
-		return res, errors.New("start_date is not valid")
+		return res, errors.New(constants.StartDateNotValid)
 	}
 
 	// future start date should not be on overlap
@@ -153,7 +158,7 @@ func (ss *SubscriptionService) Post(args subscriptions.PostArgs) (SubscriptionPo
 						tx.Model(&models.Subscription{}).Where("id = ?", subscription.ID).Update("valid_till", newStartDate)
 						oldPlanUsesDays = float32(newStartDate.Sub(subscription.StartDate).Hours() / 24)
 					} else {
-						return errors.New("plan is already activated at give date. please choose another plan or provide future date")
+						return errors.New(constants.PlanAlreadyActivated)
 					}
 
 					if newPlan.ID != subscription.PlanID {
@@ -161,7 +166,7 @@ func (ss *SubscriptionService) Post(args subscriptions.PostArgs) (SubscriptionPo
 						var oldPlan models.Plan
 						oldPlanDetails := tx.Where("id = ?", subscription.PlanID).First(&oldPlan)
 						if oldPlanDetails.RowsAffected == 0 {
-							return errors.New("oops, error occurred")
+							return errors.New(constants.ErrorOccurred)
 						}
 
 						if oldPlanUsesDays == 0 {
@@ -175,7 +180,7 @@ func (ss *SubscriptionService) Post(args subscriptions.PostArgs) (SubscriptionPo
 					amountToProcess = -(newPlan.Cost - amountToProcess)
 				}
 			} else {
-				return errors.New("start_date is not valid")
+				return errors.New(constants.StartDateNotValid)
 			}
 		}
 
@@ -189,7 +194,7 @@ func (ss *SubscriptionService) Post(args subscriptions.PostArgs) (SubscriptionPo
 		}
 		if err == nil {
 			res.Amount = amountToProcess
-			res.Status = "SUCCESS"
+			res.Status = constants.SUCCESS
 			var validTill time.Time
 			if newPlan.Validity == -1 {
 				validTill = newStartDate.AddDate(100, 0, 0)

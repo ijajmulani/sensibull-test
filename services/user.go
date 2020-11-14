@@ -12,6 +12,7 @@ type UserResponse struct {
 	CreatedAt string `json:"created_at"`
 }
 
+// Get will get user details from db
 func (us *UserService) Get(userName string) (UserResponse, error) {
 	var user models.User
 	db := models.GetDB()
@@ -27,14 +28,10 @@ func (us *UserService) Get(userName string) (UserResponse, error) {
 	return res, nil
 }
 
+// Add will add user details in db
 func (us *UserService) Add(name string) error {
-
-	// remove space from user name
-
 	db := models.GetDB()
-
 	var user models.User
-
 	result := db.Where("name = ?", name).First(&user)
 	if result.RowsAffected > 0 {
 		return errors.New("user_name already exists")

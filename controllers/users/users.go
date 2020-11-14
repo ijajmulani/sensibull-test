@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"strings"
 
+	"sensibull-test/constants"
 	"sensibull-test/services"
 
 	"github.com/gorilla/mux"
@@ -22,7 +23,7 @@ func Get(w http.ResponseWriter, r *http.Request) {
 		json.NewEncoder(w).Encode(resp)
 		return
 	}
-	http.Error(w, "User not found", http.StatusNotFound)
+	http.Error(w, constants.UserNotFound, http.StatusNotFound)
 }
 
 func Put(w http.ResponseWriter, r *http.Request) {

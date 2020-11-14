@@ -3,6 +3,7 @@ package subscriptions
 import (
 	"encoding/json"
 	"net/http"
+	"sensibull-test/constants"
 	"sensibull-test/services"
 	"sensibull-test/structures/subscriptions"
 
@@ -16,7 +17,7 @@ func Post(w http.ResponseWriter, r *http.Request) {
 	// respond to the client with the error message and a 400 status code.
 	err := json.NewDecoder(r.Body).Decode(&args)
 	if err != nil || args.UserName == "" || args.StartDate == "" || args.PlanName == "" {
-		http.Error(w, "Request not well formed", http.StatusBadRequest)
+		http.Error(w, constants.RequestNotWellFormed, http.StatusBadRequest)
 		return
 	}
 

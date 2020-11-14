@@ -7,6 +7,7 @@ import (
 	"io"
 	"math"
 	"net/http"
+	"sensibull-test/constants"
 )
 
 func ProcessPayment(userName string, amount float32, response interface{}) error {
@@ -43,7 +44,7 @@ func ProcessPayment(userName string, amount float32, response interface{}) error
 	defer resp.Body.Close()
 
 	if resp.StatusCode < 200 || resp.StatusCode > 299 {
-		return errors.New("Error in request")
+		return errors.New(constants.ErrorInPayment)
 	}
 
 	if response == nil {
