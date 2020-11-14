@@ -15,10 +15,6 @@ func Get(w http.ResponseWriter, r *http.Request) {
 	userName := vars["userName"]
 	userName = strings.Trim(userName, " ")
 	w.Header().Set("Content-Type", "application/json")
-	if userName == "" {
-		w.WriteHeader(http.StatusBadRequest)
-		return
-	}
 
 	var userService services.UserService
 	if resp, err := userService.Get(userName); err == nil {
@@ -26,21 +22,16 @@ func Get(w http.ResponseWriter, r *http.Request) {
 		json.NewEncoder(w).Encode(resp)
 		return
 	}
-	w.WriteHeader(http.StatusNotFound)
+	http.Error(w, "User not found", http.StatusNotFound)
 }
 
 func Put(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	userName := vars["userName"]
-	userName = strings.Trim(userName, " ")
 	w.Header().Set("Content-Type", "application/json")
-	if userName == "" {
-		w.WriteHeader(http.StatusBadRequest)
-		return
-	}
 	var userService services.UserService
 	if err := userService.Add(userName); err != nil {
-		w.WriteHeader(http.StatusUnprocessableEntity)
+		http.Error(w, err.Error(), http.StatusUnprocessableEntity)
 		return
 	}
 	w.WriteHeader(http.StatusOK)

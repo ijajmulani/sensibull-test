@@ -2,7 +2,6 @@ package services
 
 import (
 	"errors"
-	"log"
 	"sensibull-test/helper"
 	"sensibull-test/models"
 	"sensibull-test/structures/subscriptions"
@@ -29,8 +28,9 @@ type SubscriptionGetResponse struct {
 
 func (ss *SubscriptionService) GetByUserName(userName string) ([]SubscriptionListResponse, error) {
 	db := models.GetDB()
-	var response []SubscriptionListResponse
 	var subscription models.Subscription
+	var response []SubscriptionListResponse
+	layoutISO := "2006-01-02"
 	rows, err := db.
 		Table(subscription.TableName()).
 		Select("subscription.start_date, subscription.valid_till, plan.name").
@@ -39,8 +39,6 @@ func (ss *SubscriptionService) GetByUserName(userName string) ([]SubscriptionLis
 		Where("user.name = ?", userName).
 		Order("start_date asc").
 		Rows()
-	log.Println(rows.Columns())
-	layoutISO := "2006-01-02"
 
 	if err == nil {
 		var (
@@ -48,14 +46,12 @@ func (ss *SubscriptionService) GetByUserName(userName string) ([]SubscriptionLis
 			startDate time.Time
 			validTill time.Time
 		)
+		defer rows.Close()
 		for rows.Next() {
 			if err := rows.Scan(&startDate, &validTill, &planName); err != nil {
-				// Check for a scan error.
-				// Query rows will be closed with defer.
-				log.Fatal(err)
+				return response, err
 			}
 
-			log.Println(planName, startDate, validTill)
 			response = append(response, SubscriptionListResponse{
 				StartDate: startDate.Format(layoutISO),
 				ValidTill: validTill.Format(layoutISO),
@@ -63,6 +59,10 @@ func (ss *SubscriptionService) GetByUserName(userName string) ([]SubscriptionLis
 			})
 		}
 	}
+	if len(response) == 0 {
+		response = make([]SubscriptionListResponse, 0)
+	}
+
 	return response, err
 }
 
@@ -95,7 +95,6 @@ func (ss *SubscriptionService) GetByUserNameAndDate(userName string, date string
 		response.DaysLeft = int(result.ValidTill.Sub(inputDate).Hours() / 24)
 	}
 	return response, nil
-
 }
 
 func (ss *SubscriptionService) Post(args subscriptions.PostArgs) error {
@@ -117,7 +116,6 @@ func (ss *SubscriptionService) Post(args subscriptions.PostArgs) error {
 	}
 
 	// start should be valid and start date should be greater than current date
-
 	// remaining match date only not time
 	if newStartDate, err = time.Parse(layoutISO, args.StartDate); err != nil || newStartDate.Before(time.Now()) {
 		return errors.New("start_date is not valid")
@@ -184,7 +182,6 @@ func (ss *SubscriptionService) Post(args subscriptions.PostArgs) error {
 
 		db.Create(&newSubscription)
 	}
-	log.Println("paymentResp", paymentResp)
 
 	return err
 }
