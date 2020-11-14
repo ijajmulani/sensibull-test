@@ -92,7 +92,7 @@ func (ss *SubscriptionService) GetByUserNameAndDate(userName string, date string
 		Name      string
 	}
 	var result Result
-	db.Debug().
+	db.
 		Table(subscription.TableName()).
 		Select("subscription.valid_till, plan.name").
 		Joins("join user on subscription.user_id = user.id").
@@ -141,7 +141,7 @@ func (ss *SubscriptionService) Post(args subscriptions.PostArgs) (SubscriptionPo
 	// can upgrade/degrade plan on current date if plan id is different
 
 	var subscription models.Subscription
-	db.Debug().Last(&subscription).Where("user_id = ?", user.ID).Order("start_date")
+	db.Last(&subscription).Where("user_id = ?", user.ID).Order("start_date")
 	var amountToProcess = -newPlan.Cost
 
 	// used transaction if payment fails then to revert all transaction

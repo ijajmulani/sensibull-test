@@ -1,5 +1,24 @@
 version: "3.8"
 services:
+  
+
+  fullstack-mysql:
+    image: mysql:5.7
+    container_name: full_db_mysql
+    ports: 
+      - 3306:3306
+    environment: 
+      - MYSQL_ROOT_HOST=${DB_HOST} 
+      - MYSQL_USER=${DB_USER}
+      - MYSQL_PASSWORD=${DB_PASSWORD}
+      - MYSQL_DATABASE=${DB_NAME}
+      - MYSQL_ROOT_PASSWORD=${DB_ROOT_PASSWORD}
+   
+    volumes:
+      - database_mysql:/var/lib/mysql
+      - ./mysql/docker-entrypoint-initdb.d:/docker-entrypoint-initdb.d
+    networks:
+      - fullstack
   api:
     build: .
     ports:
@@ -11,30 +30,13 @@ services:
       - fullstack-mysql
     networks:
       - fullstack
-
-  fullstack-mysql:
-    image: mysql:5.7
-    container_name: full_db_mysql
-    ports: 
-      - 3306:3306
     environment: 
-        MYSQL_DATABASE: sensibull
-        MYSQL_ROOT_PASSWORD: root
-        MYSQL_USER: docker
-        MYSQL_PASSWORD: docker
-        MYSQL_ROOT_HOST: fullstack-mysql
-      # - MYSQL_ROOT_HOST=${DB_HOST} 
-      # - MYSQL_USER=${DB_USER}
-      # - MYSQL_PASSWORD=${DB_PASSWORD}
-      # - MYSQL_DATABASE=${DB_NAME}
-      # - MYSQL_ROOT_PASSWORD=${DB_ROOT_PASSWORD}
-
-    volumes:
-      - database_mysql:/var/lib/mysql
-      - ./mysql/docker-entrypoint-initdb.d:/docker-entrypoint-initdb.d
-    networks:
-      - fullstack
-  
+      - MYSQL_ROOT_HOST=${DB_HOST} 
+      - MYSQL_USER=${DB_USER}
+      - MYSQL_PASSWORD=${DB_PASSWORD}
+      - MYSQL_DATABASE=${DB_NAME}
+      - MYSQL_PORT=${DB_PORT}
+      - MYSQL_ROOT_PASSWORD=${DB_ROOT_PASSWORD}
       
 volumes:
   api:

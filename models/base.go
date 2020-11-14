@@ -1,7 +1,8 @@
 package models
 
 import (
-	"fmt"
+	"log"
+	"os"
 	"time"
 
 	"gorm.io/driver/mysql"
@@ -17,21 +18,26 @@ type Model struct {
 
 func init() {
 
-	username := "docker"        // os.Getenv("db_user")
-	password := "docker"        //os.Getenv("db_pass")
-	dbName := "sensibull"       //os.Getenv("db_name")
-	dbHost := "fullstack-mysql" // os.Getenv("db_host")
-	dbPort := "3306"            // os.Getenv("db_port")
+	username := os.Getenv("MYSQL_USER")
+	password := os.Getenv("MYSQL_PASSWORD")
+	dbName := os.Getenv("MYSQL_DATABASE")
+	dbHost := os.Getenv("MYSQL_ROOT_HOST")
+	dbPort := os.Getenv("MYSQL_PORT")
 
-	dsn := username + ":" + password + "@tcp(" + dbHost + ":" + dbPort + ")/" + dbName + "?charset=utf8mb4&parseTime=True&loc=Local"
-	conn, err := gorm.Open(mysql.Open(dsn), &gorm.Config{})
-	if err != nil {
-		fmt.Print("-=---------- ", err)
+	for {
+		dsn := username + ":" + password + "@tcp(" + dbHost + ":" + dbPort + ")/" + dbName + "?charset=utf8mb4&parseTime=True&loc=Local"
+		conn, err := gorm.Open(mysql.Open(dsn), &gorm.Config{})
+		if err != nil {
+			log.Printf("Could not connect to database. Retrying in 2 seconds")
+			time.Sleep(2 * time.Second)
+		} else {
+			db = conn
+			break
+		}
 	}
-	db = conn
 
 	//Automatically create migration as per model
-	err = db.AutoMigrate(
+	db.AutoMigrate(
 		&User{},
 		&Plan{},
 		&Subscription{},
