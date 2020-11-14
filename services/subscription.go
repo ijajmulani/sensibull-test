@@ -185,15 +185,27 @@ func (ss *SubscriptionService) Post(args subscriptions.PostArgs) (SubscriptionPo
 
 		paymentResp := new(PaymentResp)
 
-		if err = helper.ProcessPayment(args.UserName, amountToProcess, paymentResp); err == nil {
+		// if amountToProcess == 0 then no need to hit payment api
+		if amountToProcess != 0 {
+			err = helper.ProcessPayment(args.UserName, amountToProcess, paymentResp)
+		} else {
+			amountToProcess = 0
+		}
+		if err == nil {
 			res.Amount = amountToProcess
 			res.Status = "SUCCESS"
+			var validTill time.Time
+			if newPlan.Validity == -1 {
+				validTill = newStartDate.AddDate(100, 0, 0)
+			} else {
+				validTill = newStartDate.AddDate(0, 0, int(newPlan.Validity))
+			}
 
 			newSubscription := models.Subscription{
 				PlanID:    newPlan.ID,
 				UserID:    user.ID,
 				StartDate: newStartDate,
-				ValidTill: newStartDate.AddDate(0, 0, int(newPlan.Validity)),
+				ValidTill: validTill,
 			}
 
 			tx.Create(&newSubscription)
